@@ -15,8 +15,8 @@ pub fn rand_string(size: usize) -> String {
 }
 
 impl Users {
-    fn is_auth(&self, session: &Session) -> bool {
-        let option = self.sess.get(session.id);
+    async fn is_auth(&self, session: &Session) -> bool {
+        let option = self.sess.get(session.id).await;
         if let Some(auth_key) = option {
             auth_key == session.auth_key
         } else {
@@ -29,27 +29,27 @@ impl Users {
         let user = self.conn.get_user_by_email(&form.email).await?;
         let user_pwd = &user.password;
         if verify(user_pwd, form_pwd)? {
-            let key = self.set_auth_key(user.id)?;
+            let key = self.set_auth_key(user.id).await?;
             Ok(key)
         } else {
             raise(ErrorKind::Unauthorized, "Incorrect password.")
         }
     }
-    fn logout(&self, session: &Session) -> Result<()> {
-        if self.is_auth(session) {
-            self.sess.remove(session.id)?;
+    async fn logout(&self, session: &Session) -> Result<()> {
+        if self.is_auth(session).await {
+            self.sess.remove(session.id).await?;
         }
         Ok(())
     }
-    fn set_auth_key_for(&self, user_id: i32, time: Duration) -> Result<String> {
+    async fn set_auth_key_for(&self, user_id: i32, time: Duration) -> Result<String> {
         let key = rand_string(10);
-        self.sess.insert_for(user_id.into(), key.clone(), time)?;
+        self.sess.insert_for(user_id.into(), key.clone(), time).await?;
         Ok(key)
     }
 
-    fn set_auth_key(&self, user_id: i32) -> Result<String> {
+    async fn set_auth_key(&self, user_id: i32) -> Result<String> {
         let key = rand_string(15);
-        self.sess.insert(user_id.into(), key.clone())?;
+        self.sess.insert(user_id.into(), key.clone()).await?;
         Ok(key)
     }
     async fn signup(&self, form: &Signup) -> Result<()> {
@@ -65,7 +65,7 @@ impl Users {
         let user = self.conn.get_user_by_email(&form.email).await?;
         let user_pwd = &user.password;
         if verify(user_pwd, form_pwd)? {
-            let key = self.set_auth_key_for(user.id, time)?;
+            let key = self.set_auth_key_for(user.id, time).await?;
             Ok(key)
         } else {
             raise(ErrorKind::Unauthorized, "Incorrect password.")

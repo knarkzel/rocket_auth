@@ -69,8 +69,6 @@ version = "1.4.0"
 features = ["rt", "rt-multi-thread"]
 optional = true
 
-
-
 [dev-dependencies.rocket_contrib]
 version = "0.5.0-dev"
 git = "https://github.com/SergioBenitez/Rocket/"

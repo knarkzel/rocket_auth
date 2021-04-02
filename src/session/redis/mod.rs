@@ -2,29 +2,29 @@ use super::SessionManager;
 use crate::prelude::*;
 
 
-use redis::{Commands, Client};
-
+use redis::{AsyncCommands, Client};
+// use redis::as
 const YEAR_IN_SECS: usize = 365 * 60 * 60 * 24;
-
+#[rocket::async_trait]
 impl SessionManager for Client {
-    fn insert(&self, id: i32, key: String) -> Result<()> {
-        let mut cnn = self.get_connection()?;
-        cnn.set_ex(id, key, YEAR_IN_SECS)?;
+    async fn insert(&self, id: i32, key: String) -> Result<()> {
+        let mut cnn = self.get_async_connection().await?;
+        cnn.set_ex(id, key, YEAR_IN_SECS).await?;
         Ok(())
     }
-    fn insert_for(&self, id: i32, key: String, time: Duration) -> Result<()> {
-        let mut cnn = self.get_connection()?;
-        cnn.set_ex(id, key, time.as_secs() as usize)?;
+    async fn insert_for(&self, id: i32, key: String, time: Duration) -> Result<()> {
+        let mut cnn = self.get_async_connection().await?;
+        cnn.set_ex(id, key, time.as_secs() as usize).await?;
         Ok(())
     }
-    fn remove(&self, id: i32) -> Result<()> {
-        let mut cnn = self.get_connection()?;
-        cnn.del(id)?;
+    async fn remove(&self, id: i32) -> Result<()> {
+        let mut cnn = self.get_async_connection().await?;
+        cnn.del(id).await?;
         Ok(())
     }
-    fn get(&self, id: i32) -> Option<String> {
-        let mut cnn = self.get_connection().ok()?;
-        let key = cnn.get(id).ok()?;
+    async fn get(&self, id: i32) -> Option<String> {
+        let mut cnn = self.get_async_connection().await.ok()?;
+        let key = cnn.get(id).await.ok()?;
         Some(key)
     }
     fn clear_all(&self) -> Result<()> {

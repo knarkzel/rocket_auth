@@ -190,9 +190,9 @@ impl<'a> Auth<'a> {
     /// }
     /// # fn main() {}
     /// ```
-    pub fn is_auth(&self) -> bool {
+    pub async fn is_auth(&self) -> bool {
         if let Some(session) = &self.session {
-            self.users.is_auth(session)
+            self.users.is_auth(session).await
         } else {
             false
         }
@@ -209,7 +209,7 @@ impl<'a> Auth<'a> {
     /// }
     /// ```
     pub async fn get_user(&self) -> Option<User> {
-        if !self.is_auth() {
+        if !self.is_auth().await {
             return None;
         }
         let id = self.session.as_ref()?.id;
@@ -230,9 +230,9 @@ impl<'a> Auth<'a> {
     ///     auth.logout();
     /// }
     /// ```
-    pub fn logout(&mut self) -> Result<()> {
+    pub async fn logout(&mut self) -> Result<()> {
         let session = self.get_session()?;
-        self.users.logout(session)?;
+        self.users.logout(session).await?;
         self.cookies.remove_private(Cookie::named("rocket_auth"));
         Ok(())
     }
@@ -247,7 +247,7 @@ impl<'a> Auth<'a> {
     /// }```
 
     pub async fn delete(&mut self) -> Result<()> {
-        if self.is_auth() {
+        if self.is_auth().await {
             let session = self.get_session()?;
             self.users.delete(session.id).await?;
             self.cookies.remove_private(Cookie::named("rocket_auth"));
@@ -266,7 +266,7 @@ impl<'a> Auth<'a> {
     /// ```
 
     pub async fn change_password(&self, password: &str) -> Result<()> {
-        if self.is_auth() {
+        if self.is_auth().await {
             let session = self.get_session()?;
             let mut user = self.users.get_by_id(session.id).await?;
             user.set_password(password)?;
@@ -283,7 +283,7 @@ impl<'a> Auth<'a> {
     /// ```
 
     pub async fn change_email(&self, email: String) -> Result<()> {
-        if self.is_auth() {
+        if self.is_auth().await {
             email.is_valid()?;
             let session = self.get_session()?;
             let mut user = self.users.get_by_id(session.id).await?;

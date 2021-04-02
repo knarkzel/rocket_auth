@@ -7,21 +7,21 @@ use crate::prelude::*;
 use super::AuthKey;
 use chashmap::CHashMap;
 use super::SessionManager;
-
+#[rocket::async_trait]
 impl SessionManager for CHashMap<i32, AuthKey> {
 
     // Unnecesary Result
-    fn insert(&self, id: i32, key: String) -> Result<()> {
+    async fn insert(&self, id: i32, key: String) -> Result<()> {
         self.insert(id, key.into());
         Ok(())
     }
     // Unnecesary Result
-    fn remove(&self, id: i32) -> Result<()> {
+    async fn remove(&self, id: i32) -> Result<()> {
         self.remove(&id);
         Ok(())
     }
 
-    fn get(&self, id: i32) -> Option<String> {
+    async fn get(&self, id: i32) -> Option<String> {
         let key = self.get(&id)?;
         Some(key.secret.clone())
     }
@@ -31,7 +31,7 @@ impl SessionManager for CHashMap<i32, AuthKey> {
         Ok(())
     }
 
-    fn insert_for(&self, id: i32, key: String, time: Duration) -> Result<()> {
+    async fn insert_for(&self, id: i32, key: String, time: Duration) -> Result<()> {
         let key = AuthKey {
             expires: time.as_secs(),
             secret: key,

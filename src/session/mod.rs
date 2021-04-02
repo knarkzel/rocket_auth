@@ -5,12 +5,12 @@ pub mod default;
 #[cfg(feature = "redis-session")]
 pub mod redis;
 
-
+#[rocket::async_trait]
 pub trait SessionManager: Send + Sync {
-    fn insert(&self, id: i32, key: String) -> Result<()>;
-    fn insert_for(&self, id: i32, key: String, time: Duration) -> Result<()>;
-    fn remove(&self, id: i32) -> Result<()>;
-    fn get(&self, id: i32) -> Option<String>;
+    async fn insert(&self, id: i32, key: String) -> Result<()>;
+    async fn insert_for(&self, id: i32, key: String, time: Duration) -> Result<()>;
+    async fn remove(&self, id: i32) -> Result<()>;
+    async fn get(&self, id: i32) -> Option<String>;
     fn clear_all(&self) -> Result<()>;
     fn clear_expired(&self) -> Result<()>;
 }
