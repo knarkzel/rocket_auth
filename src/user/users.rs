@@ -20,13 +20,13 @@ impl Users {
     /// # Ok(()) }
     /// ```
     #[cfg(feature = "sqlite-db")]
-    pub fn open_sqlite(path: impl AsRef<Path>) -> Result<Self> {
+    pub async fn open_sqlite(path: impl AsRef<Path>) -> Result<Self> {
         use std::sync::Mutex;
         let users = Users {
             conn: Box::new(Mutex::new(rusqlite::Connection::open(path)?)),
             sess: Box::new(chashmap::CHashMap::new()),
         };
-        users.conn.init()?;
+        users.conn.init().await?;
         Ok(users)
     }
 
@@ -45,7 +45,7 @@ impl Users {
     /// # Ok(()) }
     /// ```
     #[cfg(feature = "redis-session")]
-    pub fn open_redis(&mut self, path: impl redis::IntoConnectionInfo) -> Result<()> {
+    pub async fn open_redis(&mut self, path: impl redis::IntoConnectionInfo) -> Result<()> {
         let client = redis::Client::open(path)?;
         self.sess = Box::new(client);
         Ok(())
@@ -65,7 +65,7 @@ impl Users {
     /// 
     /// ```
     #[cfg(feature = "postgres-db")]
-    pub fn open_postgres(path: &str) -> Result<Self> {
+    pub async fn open_postgres(path: &str) -> Result<Self> {
         use tokio::runtime::Builder;
         use tokio_postgres::{connect, NoTls};
         let rt = Builder::new_current_thread().enable_io().build()?;
@@ -78,7 +78,7 @@ impl Users {
                 }
             })
         });
-        client.init()?;
+        client.init().await?;
         
         let users = Users {
             conn: Box::new(client),
@@ -101,8 +101,8 @@ impl Users {
     /// }
     /// # fn main() {}
     /// ```
-    pub fn get_by_email(&self, email: &str) -> Result<User> {
-        self.conn.get_user_by_email(email)
+    pub async fn get_by_email(&self, email: &str) -> Result<User> {
+        self.conn.get_user_by_email(email).await
     }
 
     /// It querys a user by their email.
@@ -117,8 +117,8 @@ impl Users {
     /// # }
     /// # fn main() {}
     /// ```
-    pub fn get_by_id(&self, user_id: i32) -> Result<User> {
-        self.conn.get_user_by_id(user_id)
+    pub async fn get_by_id(&self, user_id: i32) -> Result<User> {
+        self.conn.get_user_by_id(user_id).await
     }
 
 
@@ -135,12 +135,12 @@ impl Users {
     /// }
     /// # fn main() {}
     /// ```
-    pub fn create_user(&self, email: &str, password: &str, is_admin: bool) -> Result<()> {
+    pub async fn create_user(&self, email: &str, password: &str, is_admin: bool) -> Result<()> {
         let password = password.as_bytes();
         let salt = rand_string(10);
         let config = argon2::Config::default();
         let hash = argon2::hash_encoded(password, &salt.as_bytes(), &config).unwrap();
-        self.conn.create_user(email, &hash, is_admin)?;
+        self.conn.create_user(email, &hash, is_admin).await?;
         Ok(())
     }
 
@@ -151,9 +151,9 @@ impl Users {
     ///     users.delete(id)?;
     ///     Ok("The user has been deleted.")
     /// }
-    pub fn delete(&self, id: i32) -> Result<()> {
+    pub async fn delete(&self, id: i32) -> Result<()> {
         self.sess.remove(id)?;
-        self.conn.delete_user_by_id(id)?;
+        self.conn.delete_user_by_id(id).await?;
         Ok(())
     }
 
@@ -168,8 +168,8 @@ impl Users {
     /// users.modify(&user)?;
     /// # Ok(())}
     /// ```
-    pub fn modify(&self, user: &User) -> Result<()> {
-        self.conn.update_user(user)?;
+    pub async fn modify(&self, user: &User) -> Result<()> {
+        self.conn.update_user(user).await?;
         Ok(())
     }
 }

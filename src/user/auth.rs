@@ -1,7 +1,7 @@
 use crate::forms::ValidEmail;
 use crate::prelude::*;
 use rocket::http::Status;
-use rocket::http::{Cookie, Cookies};
+use rocket::http::{Cookie, CookieJar};
 use rocket::request::FromRequest;
 use rocket::request::Outcome;
 use rocket::Request;
@@ -10,7 +10,7 @@ use serde_json::json;
 use std::time::Duration;
 
 /// The [`Auth`] guard allows to log in, log out, sign up, modify, and delete the currently (un)authenticated user.
-/// For more information see [`Auth`]. Because of rust's ownership rules, you may not retrieve both `rocket::http::Cookies` and the [`Auth`] guard
+/// For more information see [`Auth`]. Because of rust's ownership rules, you may not retrieve both `rocket::http::CookieJar` and the [`Auth`] guard
 /// simultaneously. However, retrieveng cookies is not needed since `Auth` stores them in the public field [`Auth::cookies`].
 ///  A working example:
 /// ```rust,no_run
@@ -48,24 +48,22 @@ use std::time::Duration;
 pub struct Auth<'a> {
     /// `Auth` includes in its fields a [`Users`] instance. Therefore, it is not necessary to retrieve `Users` when using this guard.
     pub users: State<'a, Users>,
-    pub cookies: Cookies<'a>,
+    pub cookies: &'a CookieJar<'a>,
     pub session: Option<Session>,
 }
-
-impl<'a, 'r> FromRequest<'a, 'r> for Auth<'a> {
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for Auth<'r> {
     type Error = Error;
-    fn from_request(req: &'a Request<'r>) -> Outcome<Auth<'a>, Error> {
-        let session: Option<Session> = if let Outcome::Success(users) = req.guard() {
+    async fn from_request(req: &'r Request<'_>) -> Outcome<Auth<'r>, Error> {
+        let session: Option<Session> = if let Outcome::Success(users) = req.guard().await {
             Some(users)
         } else {
             None
         };
 
-        let users: State<Users> = if let Outcome::Success(users) = req.guard() {
-            
+        let users: State<Users> = if let Outcome::Success(users) = req.guard().await {
             users
         } else {
-            
             return Outcome::Failure((Status::Unauthorized, Error {
                 message: "Attempted to load Users, but it was not being managed. Possible fix:  add `.manage(users)` to your rocket apllication.".into(),
                 kind: ErrorKind::UnmanagedStateError,
@@ -81,7 +79,7 @@ impl<'a, 'r> FromRequest<'a, 'r> for Auth<'a> {
 }
 
 impl<'a> Auth<'a> {
-    /// Logs in the user through a parsed form or json. 
+    /// Logs in the user through a parsed form or json.
     /// The session is set to expire in one year by default.
     /// For a custom expiration date use [`Auth::login_for`].
     /// ```rust
@@ -93,9 +91,9 @@ impl<'a> Auth<'a> {
     ///     auth.login(&form);
     /// }
     /// ```
-    pub fn login(&mut self, form: &Login) -> Result<()> {
-        let key = self.users.login(&form)?;
-        let user = self.users.get_by_email(&form.email)?;
+    pub async fn login(&mut self, form: &Login) -> Result<()> {
+        let key = self.users.login(&form).await?;
+        let user = self.users.get_by_email(&form.email).await?;
         let session = Session {
             id: user.id,
             email: user.email,
@@ -119,9 +117,9 @@ impl<'a> Auth<'a> {
     ///     auth.login_for(&form, one_hour);
     /// }
     /// ```
-    pub fn login_for(&mut self, form: &Login, time: Duration) -> Result<()> {
-        let key = self.users.login_for(&form, time)?;
-        let user = self.users.get_by_email(&form.email)?;
+    pub async fn login_for(&mut self, form: &Login, time: Duration) -> Result<()> {
+        let key = self.users.login_for(&form, time).await?;
+        let user = self.users.get_by_email(&form.email).await?;
         let session = Session {
             id: user.id,
             email: user.email,
@@ -135,8 +133,8 @@ impl<'a> Auth<'a> {
     }
 
     /// Creates a new user from a form or a json.
-    /// As of version 0.2.0, the client will no longer be authenticated automatically. 
-    /// In order to authenticate the user cast the signup form to a login form or use `signup_for`. 
+    /// As of version 0.2.0, the client will no longer be authenticated automatically.
+    /// In order to authenticate the user cast the signup form to a login form or use `signup_for`.
     /// Their session will be set to expire in a year.
     /// In order to customize the expiration date use [`signup_for`](Auth::signup_for).
     /// ```rust
@@ -150,14 +148,14 @@ impl<'a> Auth<'a> {
     ///     self.login(&form.into())?;
     /// }
     /// ```
-    pub fn signup(&mut self, form: &Signup) -> Result<()> {
-        self.users.signup(&form)?;
-        
+    pub async fn signup(&mut self, form: &Signup) -> Result<()> {
+        self.users.signup(&form).await?;
+
         Ok(())
     }
 
     /// Creates a new user from a form or a json.
-    /// The session will last the specified period of time. 
+    /// The session will last the specified period of time.
     /// ```rust
     /// # #![feature(decl_macro)]
     /// # use rocket::{post, request::Form};
@@ -169,9 +167,9 @@ impl<'a> Auth<'a> {
     ///     auth.signup_for(&form, one_hour);
     /// }
     /// ```
-    pub fn signup_for(&mut self, form: &Signup, time: Duration) -> Result<()> {
-        self.users.signup(&form)?;
-        self.login_for(&form.clone().into(), time)?;
+    pub async fn signup_for(&mut self, form: &Signup, time: Duration) -> Result<()> {
+        self.users.signup(&form).await?;
+        self.login_for(&form.clone().into(), time).await?;
         Ok(())
     }
 
@@ -210,18 +208,17 @@ impl<'a> Auth<'a> {
     ///     format!("{:?}", auth.get_user())
     /// }
     /// ```
-    pub fn get_user(&self) -> Option<User> {
+    pub async fn get_user(&self) -> Option<User> {
         if !self.is_auth() {
             return None;
         }
         let id = self.session.as_ref()?.id;
-        if let Ok(user) = self.users.get_by_id(id) {
+        if let Ok(user) = self.users.get_by_id(id).await {
             Some(user)
         } else {
             None
         }
     }
-
 
     /// Logs the currently authenticated user out.
     /// ```rust
@@ -249,10 +246,10 @@ impl<'a> Auth<'a> {
     ///     auth.delete();
     /// }```
 
-    pub fn delete(&mut self) -> Result<()> {
+    pub async fn delete(&mut self) -> Result<()> {
         if self.is_auth() {
             let session = self.get_session()?;
-            self.users.delete(session.id)?;
+            self.users.delete(session.id).await?;
             self.cookies.remove_private(Cookie::named("rocket_auth"));
             Ok(())
         } else {
@@ -263,18 +260,17 @@ impl<'a> Auth<'a> {
         }
     }
 
-
     /// Changes the password of the currently authenticated user
     /// ```
     /// auth.change_password("new password");
     /// ```
 
-    pub fn change_password(&self, password: &str) -> Result<()> {
+    pub async fn change_password(&self, password: &str) -> Result<()> {
         if self.is_auth() {
             let session = self.get_session()?;
-            let mut user = self.users.get_by_id(session.id)?;
+            let mut user = self.users.get_by_id(session.id).await?;
             user.set_password(password)?;
-            self.users.modify(&user)?;
+            self.users.modify(&user).await?;
             Ok(())
         } else {
             raise(ErrorKind::Unauthorized, "Unauthorized.")
@@ -285,24 +281,23 @@ impl<'a> Auth<'a> {
     /// ```
     /// auth.change_email("new@email.com");
     /// ```
-    
-    pub fn change_email(&self, email: String) -> Result<()> {
+
+    pub async fn change_email(&self, email: String) -> Result<()> {
         if self.is_auth() {
             email.is_valid()?;
             let session = self.get_session()?;
-            let mut user = self.users.get_by_id(session.id)?;
+            let mut user = self.users.get_by_id(session.id).await?;
             user.email = email;
-            self.users.modify(&user)?;
+            self.users.modify(&user).await?;
             Ok(())
         } else {
             raise(ErrorKind::Unauthorized, "Unauthorized.")
         }
     }
 
-
-    /// This method is useful when the function returns a Result type. 
-    /// It is intended to be used primarily 
-    /// with the `?` operator. 
+    /// This method is useful when the function returns a Result type.
+    /// It is intended to be used primarily
+    /// with the `?` operator.
     /// ```
     /// users.get_session()?
     /// ```

@@ -32,9 +32,15 @@ regex = "1"
 serde_json = "1.0.59"
 chashmap = "2.2.2"
 
+[dependencies.async-trait]
+version = "0.1.48"
+
+
 [dependencies.rocket]
-version = "0.4.7"
-features = ["private-cookies"]
+version = "0.5.0-dev"
+git = "https://github.com/SergioBenitez/Rocket"
+rev = "0654890e3d03a91537ee1d06b34ea3d2143f009e" 
+features = ["secrets"]
 
 [dependencies.serde]
 version = "1.0.125"
@@ -64,6 +70,11 @@ features = ["rt", "rt-multi-thread"]
 optional = true
 
 
-[dev-dependencies]
-rocket_contrib = {version = "0.4.7", features = ["tera_templates"]}
+
+[dev-dependencies.rocket_contrib]
+version = "0.5.0-dev"
+git = "https://github.com/SergioBenitez/Rocket/"
+rev = "0654890e3d03a91537ee1d06b34ea3d2143f009e"
+features = ["tera_templates"]
+
 

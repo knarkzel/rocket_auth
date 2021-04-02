@@ -1,9 +1,9 @@
 #![feature(decl_macro)]
-use rocket::{request::Form, response::Redirect, *};
-use rocket_auth::{Auth, Error, Login, Signup, User, Users};
-use rocket_contrib::templates::{tera, Template};
+use std::error::Error;
+use rocket::{form::Form, response::Redirect, *};
+use rocket_auth::{Auth, Login, Signup, User, Users};
+use rocket_contrib::templates::{Template};
 use serde_json::json;
-
 
 #[get("/login")]
 fn get_login() -> Template {
@@ -11,44 +11,45 @@ fn get_login() -> Template {
 }
 
 #[post("/login", data = "<form>")]
-fn post_login(mut auth: Auth, form: Form<Login>) -> Redirect {
-    auth.login(&form).unwrap();
-    Redirect::to("/")
+async fn post_login<'a>(mut auth: Auth<'a>, form: Form<Login>) -> Result<Redirect, String> {
+    auth.login(&form).await.map_err(|err| err.message)?;
+    Ok(Redirect::to("/"))
 }
 
 #[get("/signup")]
 fn get_signup() -> Template {
-    let cnxt = tera::Context::new();
-    Template::render("signup", cnxt)
+    Template::render("signup", json!({}))
 }
 
 #[post("/signup", data = "<form>")]
-fn post_signup(mut auth: Auth, form: Form<Signup>) -> Redirect {
-    auth.signup(&form).unwrap();
-    auth.login(&form.into()).unwrap();
-    Redirect::to("/")
+async fn post_signup<'a>(mut auth: Auth<'a>, form: Form<Signup>) -> Result<Redirect, String> {
+    auth.signup(&form).await.map_err(|err| err.message)?;
+    auth.login(&form.into()).await.map_err(|err| err.message)?;
+    Ok(Redirect::to("/"))
 }
-
 #[get("/")]
 fn index(user: Option<User>) -> Template {
-    let mut cnxt = tera::Context::new();
-    cnxt.insert("user", &user);
-    Template::render("index", cnxt)
+    // let mut cnxt = tera::Context::new();
+    // cnxt.insert("user", &user);
+    Template::render("index", json!({ "user": &user }))
 }
 
 #[get("/logout")]
-fn logout(mut auth: Auth) -> &'static str {
+fn logout(mut auth: Auth) -> Template {
     auth.logout().unwrap();
-    "You've logged out."
+    Template::render("logout", json!({}))
 }
 #[get("/delete")]
-fn delete(mut auth: Auth) -> &'static str {
-    auth.delete().unwrap();
+async fn delete<'a>(mut auth: Auth<'a>) -> &'static str {
+    auth.delete().await.unwrap();
     "Your account was deleted."
 }
 
-fn main() -> Result<(), Error> {
-    let users = Users::open_postgres("database.db")?;
+type Result<T, E= Box<dyn Error>> = std::result::Result<T, E>;
+
+#[rocket::main]
+async fn main() -> Result<()> {
+    let users = Users::open_sqlite("database.db").await?;
 
     rocket::ignite()
         .mount("/",
@@ -62,6 +63,7 @@ fn main() -> Result<(), Error> {
                 delete],)
         .manage(users)
         .attach(Template::fairing())
-        .launch();
+        .launch()
+        .await?;
     Ok(())
 }

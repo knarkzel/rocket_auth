@@ -1,3 +1,4 @@
+use rocket::try_outcome;
 use super::auth::Auth;
 use super::rand_string;
 use crate::forms::SafePassword;
@@ -99,11 +100,12 @@ impl Debug for User {
     }
 }
 
-impl<'a, 'r> FromRequest<'a, 'r> for User {
+#[rocket::async_trait]
+impl<'a> FromRequest<'a> for User {
     type Error = Error;
-    fn from_request(request: &'a Request) -> Outcome<User, Error> {
-        let auth: Auth = request.guard()?;
-        if let Some(user) = auth.get_user() {
+    async fn from_request(request: &'a Request<'_>) -> Outcome<User, Error> {
+        let auth: Auth = try_outcome![request.guard().await];
+        if let Some(user) = auth.get_user().await {
             Outcome::Success(user)
         } else {
             Outcome::Failure((
