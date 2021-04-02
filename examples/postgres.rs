@@ -42,10 +42,12 @@ fn logout(mut auth: Auth) -> Template {
 }
 
 #[get("/delete")]
-async fn delete<'a>(mut auth: Auth<'a>) -> &'static str {
-    auth.delete().await.unwrap();
-    "Your account was deleted."
+async fn delete<'a>(mut auth: Auth<'a>) ->Template {
+    let contex = json!({"user": auth.get_user().await});
+    auth.delete().await;
+    Template::render("deleted", contex)
 }
+
 
 
 type Result<T, E= Box<dyn Error>> = std::result::Result<T, E>;
