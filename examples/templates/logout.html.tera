@@ -6,8 +6,12 @@
     <title>Document</title>
 </head>
 <body>
-    You've logged out. 
+    {% if user %}
+    You've logged out from {{ user.email }}
+    {% else %}
+    You weren't actually logged in.
+    {% endif %}
     <br>
-    <a href = "/" >return to Home. </a>
+    <a href="/">return to Home. </a>
 </body>
 </html>

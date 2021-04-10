@@ -35,15 +35,18 @@ fn index(user: Option<User>) -> Template {
 }
 
 #[get("/logout")]
-fn logout(mut auth: Auth) -> Template {
-    auth.logout().unwrap();
-    Template::render("logout", json!({}))
+async fn logout<'a>(mut auth: Auth<'a>) -> Template {
+    let user = auth.get_user().await;
+    auth.logout().await;
+    Template::render("logout", json!({"user": user}))
 }
 #[get("/delete")]
-async fn delete<'a>(mut auth: Auth<'a>) -> &'static str {
-    auth.delete().await.unwrap();
-    "Your account was deleted."
+async fn delete<'a>(mut auth: Auth<'a>) ->Template {
+    let contex = json!({"user": auth.get_user().await});
+    auth.delete().await;
+    Template::render("deleted", contex)
 }
+
 
 type Result<T, E= Box<dyn Error>> = std::result::Result<T, E>;
 

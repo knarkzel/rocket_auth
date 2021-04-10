@@ -36,9 +36,10 @@ fn index(user: Option<User>) -> Template {
 }
 
 #[get("/logout")]
-fn logout(mut auth: Auth) -> Template {
-    auth.logout().unwrap();
-    Template::render("logout", json!({}))
+async fn logout<'a>(mut auth: Auth<'a>) -> Template {
+    let user = auth.get_user().await;
+    auth.logout().await;
+    Template::render("logout", json!({"user": user}))
 }
 
 #[get("/delete")]
