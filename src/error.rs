@@ -2,20 +2,20 @@ use std::*;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("That is not a valid email address.")]
+    #[error("That is not a valid email address")]
     InvalidEmailAddressError,
 
-    #[error("That email address already exists. Try logging in.")]
+    #[error("That email address already exists, try logging in")]
     EmailAlreadyExists,
 
     #[cfg(feature = "sqlite-db")]
-    #[error("The mutex guarding the Sqlite connection was posioned.")]
+    #[error("The mutex guarding the Sqlite connection was posioned")]
     MutexPoisonError,
 
-    #[error("An error occured trying to retrieve the current time.")]
+    #[error("An error occured trying to retrieve the current time")]
     SystemTimeError(#[from] time::SystemTimeError),
 
-    #[error("Could not find any user that fits the specified requirements.")]
+    #[error("Could not find any user that fits the specified requirements")]
     UserNotFoundError,
 
     #[cfg(feature = "sqlite-db")]
@@ -37,21 +37,21 @@ pub enum Error {
     #[error("FormValidationError")]
     FormValidationError,
 
-    #[error("UnauthenticatedError: The operation failed because the client is not authenticated.")]
+    #[error("UnauthenticatedError: The operation failed because the client is not authenticated")]
     UnauthenticatedError,
 
-    #[error("Incorrect email or password.")]
+    #[error("Incorrect email or password")]
     InvalidCredentialsError,
-    #[error("The password must be at least 8 characters long.")]
+    #[error("The password must be at least 8 characters long")]
     UnsafePasswordTooShort,
 
-    #[error("The password must include a digit.")]
+    #[error("The password must include a digit")]
     UnsafePasswordHasNoDigit,
 
-    #[error("The password must include an upper case character.")]
+    #[error("The password must include an upper case character")]
     UnsafePasswordHasNoUpper,
 
-    #[error("The password must include a lower case character.")]
+    #[error("The password must include a lower case character")]
     UnsafePasswordHasNoLower,
 
     #[error("Incorrect email or password")]
@@ -121,4 +121,3 @@ impl<'r> Responder<'r, 'static> for Error {
             .ok()
     }
 }
-

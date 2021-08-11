@@ -157,10 +157,10 @@ pub use error::Error;
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, sqlx::FromRow)]
 pub struct User {
     id: i32,
-    pub email: String,
+    email: String,
     #[serde(skip_serializing)]
     password: String,
-    pub is_admin: bool,
+    is_admin: bool,
 }
 
 /// The `Users` struct is used to query users from the database, as well as to create, modify and delete them.
