@@ -132,21 +132,18 @@ pub mod prelude;
 mod session;
 mod user;
 
-#[cfg(test)]
-mod tests;
-
 use prelude::*;
 use rocket::FromForm;
 
-// pub use language::Language;
 pub use crate::user::auth::Auth;
 pub use cookies::Session;
 pub use error::Error;
 
 /// The `User` guard can be used to restrict content so it can only be viewed by authenticated users.
+///
 /// ```rust
 /// #
-/// # use rocket::{get};
+/// # use rocket::get;
 /// # use rocket_auth::User;
 /// #[get("/private-content")]
 /// fn private_content(user: User) -> &'static str {
@@ -154,11 +151,10 @@ pub use error::Error;
 /// }
 /// # fn main() {}
 /// ```
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, sqlx::FromRow)]
+#[derive(PartialEq, Eq, Clone)]
 pub struct User {
     id: i32,
     email: String,
-    #[serde(skip_serializing)]
     password: String,
     is_admin: bool,
 }
@@ -177,7 +173,6 @@ pub struct Login {
 }
 
 /// The `Signup` form is used along with the [`Auth`] guard to create new users.
-
 #[derive(FromForm, Deserialize, Debug, Clone)]
 pub struct Signup {
     pub email: String,

@@ -40,7 +40,7 @@ pub trait ValidEmail {
 }
 
 pub trait SafePassword {
-    // const UPER_CASE: &'static str = "ASDFGHJKLQWERTYUIOPZXCVBNM";
+    // const UPPER_CASE: &'static str = "ASDFGHJKLQWERTYUIOPZXCVBNM";
     // const LOWER_CASE: &'static str = "qwertyuiopasdfhjklzxcvbn";
     // const NUMBER: &'static str = "1234567890";
     // const SYMBOLS: &'static str = "~`!@#$%^&*()_-+={[}]|\\:;\"'<,>.?/";
@@ -79,6 +79,7 @@ impl SafePassword for str {
             Err(Error::UnsafePasswordTooShort)
         }
     }
+
     fn has_uppercase(&self) -> Result<()> {
         for c in self.chars() {
             if c.is_uppercase() {
@@ -87,6 +88,7 @@ impl SafePassword for str {
         }
         Err(Error::UnsafePasswordHasNoUpper)
     }
+
     fn has_lowercase(&self) -> Result<()> {
         for c in self.chars() {
             if c.is_lowercase() {
@@ -95,6 +97,7 @@ impl SafePassword for str {
         }
         Err(Error::UnsafePasswordHasNoLower)
     }
+
     fn has_number(&self) -> Result<()> {
         for c in self.chars() {
             if c.is_numeric() {

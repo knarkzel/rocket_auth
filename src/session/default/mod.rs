@@ -2,6 +2,7 @@ use super::AuthKey;
 use super::SessionManager;
 use crate::prelude::*;
 use chashmap::CHashMap;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 impl SessionManager for CHashMap<i32, AuthKey> {
     #[throws(Error)]
@@ -40,7 +41,6 @@ impl SessionManager for CHashMap<i32, AuthKey> {
     }
 }
 
-use std::time::{SystemTime, UNIX_EPOCH};
 #[throws(Error)]
 fn now() -> u64 {
     SystemTime::now()

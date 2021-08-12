@@ -1,7 +1,6 @@
 use super::rand_string;
 use crate::db::DBConnection;
 use crate::prelude::*;
-#[cfg(feature = "sqlite-db")]
 
 impl Users {
     /// It creates a `Users` instance by connecting  it to a redis database.
@@ -20,63 +19,12 @@ impl Users {
     ///     .await;
     /// # Ok(()) }
     /// ```
-    #[cfg(feature = "sqlite-db")]
     pub async fn open_sqlite(path: &str) -> Result<Self> {
-        use sqlx::Connection;
         use tokio::sync::Mutex;
-        let conn = sqlx::SqliteConnection::connect(path).await?;
+
+        let conn = rusqlite::Connection::open(path)?;
         let users: Users = Mutex::new(conn).into();
         users.conn.init().await?;
-        Ok(users)
-    }
-
-    /// Opens a redis connection. It allows for sessions to be stored persistently across
-    /// different launches.
-    /// ```rust,no_run
-    /// # use rocket_auth::{Users, Error};
-    /// # #[tokio::main]
-    /// # async fn main() -> Result<(), Error> {
-    /// let mut users = Users::open_sqlite("database.db").await?;
-    /// users.open_redis("redis://127.0.0.1/")?;
-    ///
-    /// rocket::build()
-    ///     .manage(users)
-    ///     .launch();
-    ///
-    /// # Ok(()) }
-    /// ```
-    #[cfg(feature = "redis-session")]
-    pub fn open_redis(&mut self, path: impl redis::IntoConnectionInfo) -> Result<()> {
-        let client = redis::Client::open(path)?;
-        self.sess = Box::new(client);
-        Ok(())
-    }
-
-    /// It opens a postgres database connection. I've got to admit I haven't tested this feature yet, so
-    /// don't waste your time debugging if it doesn't work.
-    /// ```rust, no_run
-    /// # use rocket_auth::{Error, Users};
-    /// # #[tokio::main]
-    /// # async fn main() -> Result<(), Error> {
-    /// let users = Users::open_sqlite("database.db").await?;
-    ///
-    /// rocket::build()
-    ///     .manage(users)
-    ///     .launch();
-    /// # Ok(()) }
-    ///
-    /// ```
-    #[cfg(feature = "postgres-db")]
-    pub async fn open_postgres(path: &str) -> Result<Self> {
-        use sqlx::PgPool;
-        let conn = PgPool::connect(path).await?;
-
-        conn.init().await?;
-
-        let users = Users {
-            conn: Box::new(conn),
-            sess: Box::new(chashmap::CHashMap::new()),
-        };
         Ok(users)
     }
 
@@ -170,7 +118,6 @@ impl Users {
 /// let users: Users = client.into();
 /// # Ok(())}
 /// ```
-
 impl<Conn: 'static + DBConnection> From<Conn> for Users {
     fn from(db: Conn) -> Users {
         Users {
@@ -200,30 +147,5 @@ impl<T0: 'static + DBConnection, T1: 'static + SessionManager> From<(T0, T1)> fo
             conn: Box::from(db),
             sess: Box::new(ss),
         }
-    }
-}
-
-// #[cfg(feature="sqlite-db")]
-// #[cfg(feature="redis-session")]
-// impl From<(sqlite::Connection, redis::Client)> for Users {
-//     fn from((db, ss): (tokio_postgres::Client, redis::Client)) -> Users {
-//         Users {
-//             conn: Box::from(db),
-//             sess: Box::from(ss)
-//         }
-//     }
-// }
-
-#[cfg(feature = "sqlite-db")]
-#[cfg(feature = "redis-session")]
-#[cfg(test)]
-mod tests {
-    async fn func(postgres_path: &str, redis_path: &str) {
-        use crate::Users;
-        use tokio_postgres::NoTls;
-        let (db_client, connection) = tokio_postgres::connect(postgres_path, NoTls).await.unwrap();
-        let redis_client = redis::Client::open(redis_path).unwrap();
-        let users: Users = Users::from((db_client, redis_client));
-        // let users: Users = (db_client, redis_client).into();
     }
 }
