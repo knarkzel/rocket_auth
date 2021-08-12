@@ -1,4 +1,4 @@
-use crate::forms::ValidEmail;
+// use crate::forms::ValidEmail;
 use crate::prelude::*;
 use rocket::http::Status;
 use rocket::http::{Cookie, CookieJar};
@@ -279,7 +279,7 @@ impl<'a> Auth<'a> {
 
     pub async fn change_email(&self, email: String) -> Result<()> {
         if self.is_auth() {
-            email.is_valid()?;
+            // email.is_valid()?;
             let session = self.get_session()?;
             let mut user = self.users.get_by_id(session.id).await?;
             user.email = email;

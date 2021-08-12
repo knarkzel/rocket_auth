@@ -75,8 +75,8 @@ impl User {
     /// }
     /// ```
     pub fn set_email(&mut self, email: &str) -> Result<()> {
-        use crate::forms::ValidEmail;
-        email.is_valid()?;
+        // use crate::forms::ValidEmail;
+        // email.is_valid()?;
         self.email = email.into();
         Ok(())
     }

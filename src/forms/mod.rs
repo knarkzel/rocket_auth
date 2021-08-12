@@ -12,7 +12,7 @@ impl Signup {
     /// does it already.
     pub fn is_valid(&self) -> Result<()> {
         self.password.is_secure()?;
-        self.email.is_valid()?;
+        // self.email.is_valid()?;
         Ok(())
     }
 }
